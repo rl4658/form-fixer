@@ -1,0 +1,12 @@
+1. Run eas build -p android in Form Fixer folder
+2. download .aab file from link 
+
+
+3. Convert .aab file to .apks file
+    a) Run keytool -genkey -v -keystore (FILENAME).jks -keyalg RSA -keysize 2048 -validity 10000 -alias (KEYNAME)  to generate a keystore
+    b) Put both .aab file and .jks file in same folder and Navigate to that folder
+    c) Run java -jar bundletool-all-1.17.2.jar build-apks --bundle=(FILENAME).aab --output=output.apks --mode=universal --ks=my-release-key.jks --ks-key-alias=my-key-alias --ks-pass=pass:YOUR_KEYSTORE_PASSWORD --key-pass=pass:YOUR_KEY_PASSWORD
+
+4. Extract .apk file from .apks file using unzip or 7zip 
+5. Upload .apk file to google drive or email yourself
+6. Download .apk file from google drive or email onto Android
