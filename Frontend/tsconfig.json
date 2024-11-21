@@ -4,12 +4,14 @@
     "strict": true,
     "paths": {
       "app/*": [
-        "Frontend/app/*"
+        "./app/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }
