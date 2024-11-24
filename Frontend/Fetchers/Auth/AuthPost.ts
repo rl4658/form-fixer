@@ -1,4 +1,4 @@
-export default function AuthPost(url: string, data: any, errorHandler: (error: any) => {}, accessToken: any, responseHandler?: () => {},) {
+export default function AuthPost(url: string, data: any, errorHandler: (error: any) => void, accessToken: any, responseHandler?: () => {},) {
 
     fetch(url, { method: "POST", headers: { "Content-Type": "application/json", authorization: `Bearer ${accessToken}` }, body: JSON.stringify(data) })
         .then(response => {
