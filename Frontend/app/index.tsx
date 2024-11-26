@@ -10,7 +10,7 @@ import AuthPost from '../Fetchers/Auth/AuthDelete';
 import Post from '../Fetchers/NoAuth/Post';
 import Put from '../Fetchers/NoAuth/Put';
 
-const host = "http://10.0.0.242:3000"
+const host = "http://192.168.2.19:3000" // ipv4
 
 
 // Sanitizer function for managing input
