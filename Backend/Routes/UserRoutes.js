@@ -202,5 +202,45 @@ router.post("/signout", JwtAuth, async (req, res) => {
     res.json()
 })
 
+// Handle update user request
+router.put("/update", JwtAuth, async (req, res) => {
+    console.log("Incoming Request: Update User");
+    const { fname, lname, age } = req.body;
+
+    if (!fname || !lname || !age) {
+        console.log("Error: Missing fields in request body");
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+        const user = req.user; // Retrieved via JWT middleware
+        if (!user) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        // Update the user in MongoDB
+        const result = await userDB.updateOne(
+            { email: user.email }, // Find by email from JWT
+            {
+                $set: {
+                    fname,
+                    lname,
+                    age,
+                    updatedAt: new Date(),
+                },
+            }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(400).json({ error: "Failed to update user" });
+        }
+
+        console.log("User updated successfully");
+        res.status(200).json({ message: "User updated successfully" });
+    } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 module.exports = router
