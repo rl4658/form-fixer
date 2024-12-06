@@ -8,11 +8,11 @@ import {
     Alert,
     Modal,
 } from 'react-native';
-import useGlobalStyle from '../hooks/GlobalStyleContext';
-import useUser from '../hooks/UserContext';
-import AuthPut from '../../Fetchers/Auth/AuthPut';
-import Post from '../../Fetchers/NoAuth/Post';
-import { host } from '../index';
+import useGlobalStyle from './hooks/GlobalStyleContext';
+import useUser, { User } from './hooks/UserContext';
+import AuthPut from '../Fetchers/Auth/AuthPut';
+import Post from '../Fetchers/NoAuth/Post';
+import { host } from './index';
 
 const AccountSettingPage = () => {
     const globalStyle = useGlobalStyle();
@@ -48,15 +48,14 @@ const AccountSettingPage = () => {
             token,
             () => {
                 Alert.alert('Success', 'Profile updated successfully.');
-                setUser((prevUser) => {
-                    if (!prevUser) return null;
-                    return {
-                        ...prevUser,
-                        fname: firstName,
-                        lname: lastName,
-                        age: parseInt(age),
-                    };
-                });
+                const updatedUser: User = {
+                    ...user, // Retain all existing properties
+                    fname: firstName,
+                    lname: lastName,
+                    age: parseInt(age),
+                };
+
+                setUser(updatedUser);
                 setEditing(false);
             }
         );
