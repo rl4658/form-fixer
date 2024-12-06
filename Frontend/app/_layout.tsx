@@ -38,6 +38,8 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
           <Stack.Screen name='index' options={{ headerShown: false }} />
           <Stack.Screen name='register' options={{ headerShown: false }} />
+          <Stack.Screen name='account' />
+          <Stack.Screen name='forgetPassword' />
         </Stack>
         <StatusBar style="auto" />
 
