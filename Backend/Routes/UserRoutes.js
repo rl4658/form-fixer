@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router()
+const crypto = require("crypto");
+
 
 const db = require("../Database/Connect.js")
 const userDB = db.collection("Users")
@@ -12,7 +14,7 @@ const { getTime } = require("../Middleware/Logger.js")
 const CustomDate = require("../Helpers/Time.js")
 const EmailService = require("../Services/EmailService.js")
 const SecurityService = require("../Services/SecurityService.js")
-
+let temp;
 
 //handle login
 router.post("/login", async (req, res) => {
@@ -69,7 +71,6 @@ router.post("/login", async (req, res) => {
 });
 
 
-//handle Register Account
 //handle Register Account
 router.put("/register", async (req, res) => {
     console.log("Request Type: Register Account");
@@ -190,16 +191,68 @@ router.get("/verify-email", async (req, res) => {
     }
 });
 
-//handle Sign Out
+router.post("/forgot-password", async (req, res) => {
+    console.log("Request Type: Forgot Password");
+    console.log("Request Body:", req.body);
+    const { email } = req.body;
+    temp = email
+    if (!email) {
+        return res.status(400).json({ error: "Email is required." });
+    }
 
-router.post("/signout", JwtAuth, async (req, res) => {
-    console.log("Request Type: Sign Out")
-    const user = req.user
-    await userDB.updateOne(
-        { email: user.email },
-        { $set: { isLoggedIn: false } })
-    console.log(`${user.fname} has signed out`)
-    res.json()
+    try {
+        const user = await userDB.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        // Generate a random 6-digit code
+        const code = crypto.randomInt(100000, 999999).toString();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Your Password Reset Code",
+            html: `
+                <p>Hello,</p>
+                <p>You requested a password reset on FormFixer.AI. Use the code below to reset your password:</p>
+                <h2>${code}</h2>
+                <p>If you did not request this, please ignore this email.</p>
+            `,
+        };
+
+        await EmailService.sendEmail(mailOptions);
+
+        // Send the code to the client (secure handling should be considered in production)
+        res.status(200).json({
+            message: "Password reset code sent successfully.",
+            code, // Include the code in the response
+        });
+    } catch (error) {
+        console.error("Error during password reset:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+
+
+router.post("/updatePassword", async (req, res) => {
+    console.log("Request Type: Update Password")
+    const { password } = req.body;
+    console.log(temp)
+    const hashedPassword = await SecurityService.hashPassword(password);
+    const user = await userDB.findOne({ email: temp });
+    if (user) {
+        await userDB.updateOne({ email: temp }, {
+            $set: {
+                password: hashedPassword
+            }
+        });
+        res.json({ message: "Password updated successfully" });
+    } else {
+        res.status(404).json({ error: "User not found" });
+    }
+
+
 })
 
 // Handle update user request
