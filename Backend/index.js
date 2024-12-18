@@ -20,6 +20,7 @@ app.use("/dashboard", authenticateToken);
 
 
 // Start the server
+// Modify the ip address to start the server, ensure ip enabled with MongoDB
 app.listen(3000, '192.168.2.19', async () => {  // ipv4
     console.log('Server running on port 3000');
 });
