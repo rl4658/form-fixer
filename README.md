@@ -72,37 +72,6 @@ This repository contains the backend code for the **FormFixer** project, a user 
 
 ---
 
-## 🚀 Setup Instructions
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-username/FormFixer.git
-   cd FormFixer/Backend
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Set Up Environment Variables**:
-   - Create a `.env` file in the `Backend` directory with the following keys:
-     ```plaintext
-     MONGO_URI=your_mongodb_connection_string
-     JWT_SECRET=your_jwt_secret
-     MY_EMAIL=your_email
-     MY_EMAIL_PASS=your_email_password
-     SERVER_HOST=your_server_host
-     ```
-
-4. **Run the Server**:
-   ```bash
-   node index.js
-   ```
-   The server will start at `http://192.168.2.19:3000`.
-
----
-
 ## 📖 Detailed File Overview
 
 ### **Database**
