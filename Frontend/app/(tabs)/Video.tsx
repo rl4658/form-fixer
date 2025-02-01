@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
     Dimensions,
     StatusBar,
@@ -10,16 +10,15 @@ import {
 } from 'react-native';
 import { TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
 import { useResizePlugin } from 'vision-camera-resize-plugin';
-
 import {
     Camera,
     useCameraDevice,
     useCameraPermission,
     useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-
 import { PaintStyle, Skia } from '@shopify/react-native-skia';
 import getBestFormat from '../formFilter';
+
 
 function tensorToString(tensor: TensorflowModel['inputs'][number]): string {
     return `${tensor.dataType} [${tensor.shape}]`;
@@ -31,6 +30,8 @@ const LINE_WIDTH = 2;
 function Video(): JSX.Element {
     const [minConfidence, setMinConfidence] = useState(0.25); // Minimum confidence threshold for upper body
     const [lowerBodyConfidenceThreshold, setLowerBodyConfidenceThreshold] = useState(0.35); // For lower body keypoints
+    const [feedback, setFeedback] = useState(''); // Feedback for form (Correct/Incorrect)
+    const [angle, setAngle] = useState<number | null>(null); // Calculated angle
 
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -54,7 +55,31 @@ function Video(): JSX.Element {
     paint.setColor(Skia.Color('white'));
 
     const lines = [
-        5, 7, 6, 8, 7, 9, 8, 10, 11, 13, 12, 14, 13, 15, 14, 16, 11, 12, 5, 6, 5, 11, 6, 12,
+        // left shoulder -> elbow
+        5, 7,
+        // right shoulder -> elbow
+        6, 8,
+        // left elbow -> wrist
+        7, 9,
+        // right elbow -> wrist
+        8, 10,
+        // left hip -> knee
+        11, 13,
+        // right hip -> knee
+        12, 14,
+        // left knee -> ankle
+        13, 15,
+        // right knee -> ankle
+        14, 16,
+
+        // left hip -> right hip
+        11, 12,
+        // left shoulder -> right shoulder
+        5, 6,
+        // left shoulder -> left hip
+        5, 11,
+        // right shoulder -> right hip
+        6, 12,
     ];
 
     const SCALE = (format?.videoWidth ?? VIEW_WIDTH) / VIEW_WIDTH;
@@ -63,7 +88,7 @@ function Video(): JSX.Element {
         (frame) => {
             'worklet';
 
-            frame.render();
+            frame.render()
 
             if (plugin.model != null) {
                 const smaller = resize(frame, {
@@ -79,6 +104,31 @@ function Video(): JSX.Element {
                 const output = outputs[0];
                 const frameWidth = frame.width;
                 const frameHeight = frame.height;
+
+                // Extract keypoints
+                const x5 = Number(output[5 * 3 + 1]) * frameWidth;  // Left Shoulder (5)
+                const y5 = Number(output[5 * 3]) * frameHeight;
+
+                const x7 = Number(output[7 * 3 + 1]) * frameWidth;  // Left Elbow (7)
+                const y7 = Number(output[7 * 3]) * frameHeight;
+
+                const x9 = Number(output[9 * 3 + 1]) * frameWidth;  // Left Wrist (9)
+                const y9 = Number(output[9 * 3]) * frameHeight;
+
+                // Compute segment lengths
+                const d57 = Math.sqrt((x7 - x5) ** 2 + (y7 - y5) ** 2); // Shoulder to Elbow
+                const d79 = Math.sqrt((x9 - x7) ** 2 + (y9 - y7) ** 2); // Elbow to Wrist
+                const d59 = Math.sqrt((x9 - x5) ** 2 + (y9 - y5) ** 2); // Shoulder to Wrist
+
+                // Use the Law of Cosines to calculate the angle at the elbow (keypoint 7)
+                const cosTheta = (d57 ** 2 + d79 ** 2 - d59 ** 2) / (2 * d57 * d79);
+                const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosTheta))); // Clamp to avoid NaN
+                const angleDegrees = (angleRadians * 180) / Math.PI; // Convert to degrees
+
+                console.log(`Left Elbow Angle: ${angleDegrees.toFixed(2)}°`);
+
+                const minAngle = 30;
+                const maxAngle = 180;
 
                 for (let i = 5; i < output.length / 3; i++) {
                     const confidence = Number(output[i * 3 + 2]);
@@ -118,8 +168,25 @@ function Video(): JSX.Element {
                 }
             }
         },
-        [plugin, paint, minConfidence, lowerBodyConfidenceThreshold],
+        [plugin, paint, inputWidth, inputHeight, minConfidence, lowerBodyConfidenceThreshold],
     );
+
+    // Update state periodically from refs
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         if (angleRef.current !== null) {
+    //             setAngle(angleRef.current);
+    //             setFeedback(feedbackRef.current);
+    //         }
+    //     }, 100);
+
+    //     return () => clearInterval(interval);
+    // }, []);
+
+    useEffect(() => {
+        setFeedback('Correct Form'); // Hardcoded feedback
+        setAngle(45); // Hardcoded angle
+    }, []);
 
     // Permissions handling
     if (!hasPermission) return <PermissionsPage requestPermission={requestPermission} />;
@@ -135,46 +202,19 @@ function Video(): JSX.Element {
                 frameProcessor={frameProcessor}
                 format={format}
             />
-            <View style={styles.controls}>
-                {/* Upper Body Confidence Controls */}
-                <Text style={styles.confidenceText}>Min Confidence: {minConfidence.toFixed(2)}</Text>
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => setMinConfidence((prev) => Math.min(prev + 0.01, 1))}
-                    >
-                        <Text style={styles.buttonText}>Increase</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => setMinConfidence((prev) => Math.max(prev - 0.01, 0))}
-                    >
-                        <Text style={styles.buttonText}>Decrease</Text>
-                    </TouchableOpacity>
-                </View>
+            <View style={styles.overlay}>
+                {angle !== null && (
+                    <Text style={styles.text}>
+                        {feedback}: {Math.round(angle)}°
+                    </Text>
+                )}
+            </View>
 
-                {/* Lower Body Confidence Controls */}
-                <Text style={styles.confidenceText}>
-                    Lower Body Confidence: {lowerBodyConfidenceThreshold.toFixed(2)}
+            {/* Instruction Overlay */}
+            <View style={styles.instructions}>
+                <Text style={styles.instructionText}>
+                    Keep your back straight and fully extend your arms!
                 </Text>
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() =>
-                            setLowerBodyConfidenceThreshold((prev) => Math.min(prev + 0.01, 1))
-                        }
-                    >
-                        <Text style={styles.buttonText}>Increase</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() =>
-                            setLowerBodyConfidenceThreshold((prev) => Math.max(prev - 0.01, 0))
-                        }
-                    >
-                        <Text style={styles.buttonText}>Decrease</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
         </View>
     );
@@ -235,7 +275,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     confidenceText: {
-        color: 'white',
+        color: 'Black',
         fontSize: 16,
         marginBottom: 10,
     },
@@ -250,8 +290,29 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     buttonText: {
+        color: 'Black',
+        fontSize: 16,
+    },
+    instructions: {
+        position: 'absolute',
+        bottom: 100,
+        padding: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        borderRadius: 5,
+    },
+    instructionText: {
         color: 'white',
         fontSize: 16,
+        textAlign: 'center',
+    },
+    overlay: {
+        position: 'absolute',
+        top: '10%', // Position the overlay near the top of the screen
+        alignSelf: 'center', // Center it horizontally
+        backgroundColor: 'rgba(255, 255, 255, 0.5)', // Semi-transparent black background
+        padding: 10, // Add padding around the text
+        borderRadius: 8, // Rounded corners for the overlay box
+        zIndex: 10, // Ensure it stays above other components
     },
 });
 
