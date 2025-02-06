@@ -1,21 +1,29 @@
-
-
-export default function AuthGet(url: string, setter: (data: any) => void, errorHandler: () => {}, accessToken: any) {
-
-    fetch(url, { method: "GET", headers: { "Content-Type": "application/json", authorization: `Bearer ${accessToken}` } })
+export default function AuthGet(
+    url: string,
+    setter: (data: any) => void,
+    errorHandler: () => void,
+    accessToken: string
+) {
+    fetch(url, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`
+        }
+    })
         .then(response => {
             if (!response.ok) {
-                errorHandler()
-                return
+                errorHandler();
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            response.json()
+            return response.json(); // Ensure we return the parsed JSON
         })
         .then(data => {
-            setter(data)
+            console.log("Fetch successful:", data);
+            setter(data);
         })
-
         .catch(error => {
-            console.log(error)
-            errorHandler()
-        })
+            console.error("Fetch error:", error);
+            errorHandler();
+        });
 }
