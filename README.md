@@ -1,5 +1,11 @@
 # FormFixer Backend
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1a0813a0-f528-4173-97ad-04b64a7a5175" alt="Screenshot 1" />
+  
+  <img src="https://github.com/user-attachments/assets/1f7b8ddf-7cfe-48a8-98ba-bda73902b61c" alt="Screenshot 2" />
+</p>
+
 This repository contains the backend code for the **FormFixer** project, a user management system built with Node.js and MongoDB. The backend is designed to handle authentication, registration, profile management, and file uploads while maintaining a clean and modular code structure.
 
 ---
